@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'services/orchestrator_service.dart';
 import 'screens/home_shell.dart';
 import 'models/user_role.dart';
+import 'screens/upload_document_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,7 @@ class AtlasAIApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF1F4E5F),
         useMaterial3: true,
       ),
-      home: const Day1StatusScreen(),
+      home: const UploadDocumentScreen(),
     );
   }
 }
