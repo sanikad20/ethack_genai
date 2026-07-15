@@ -10,7 +10,7 @@ services:
       - ./app:/code/app
     environment:
       - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8001
+      - CHROMA_PORT=8000
     depends_on:
       - chromadb
     restart: unless-stopped

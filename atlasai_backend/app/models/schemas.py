@@ -23,3 +23,22 @@ class OrchestratorResponse(BaseModel):
     results: List[AgentResult]
     merged_answer: str
     overall_confidence: float
+
+
+class GraphEdgeOut(BaseModel):
+    edgeId: str
+    fromType: str
+    fromId: str
+    toType: str
+    toId: str
+    relation: str
+
+
+class IngestResponse(BaseModel):
+    docId: str
+    fileName: str
+    status: str
+    pageCount: int
+    chunkCount: int
+    equipmentTags: List[str]
+    graphEdges: List[GraphEdgeOut]
