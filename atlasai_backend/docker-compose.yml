@@ -8,6 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/code/app
+    env_file:
+      - .env
     environment:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000

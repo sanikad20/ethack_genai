@@ -68,7 +68,7 @@ async def ingest(
             })
 
     if ids:
-        vectors = embeddings.embed_batch(docs)
+        vectors = await embeddings.embed_batch(docs)
         collection.add(ids=ids, documents=docs, metadatas=metadatas, embeddings=vectors)
 
     return IngestResponse(
