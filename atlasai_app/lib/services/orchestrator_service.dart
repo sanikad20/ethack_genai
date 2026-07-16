@@ -7,7 +7,7 @@ class OrchestratorService {
 
   // Replace with your Ubuntu machine's IP address
   OrchestratorService({
-    this.baseUrl = 'http://192.168.2.235:8000',
+    this.baseUrl = 'http://10.43.240.154:8000',
   });
 
   Future<bool> ping() async {

@@ -7,7 +7,7 @@ class StorageService {
   final String backendBaseUrl;
 
   StorageService({
-    this.backendBaseUrl = 'http://192.168.2.235:8000',
+    this.backendBaseUrl = 'http://10.43.240.154:8000',
   });
 
   Future<Map<String, dynamic>> uploadAndIngest(
