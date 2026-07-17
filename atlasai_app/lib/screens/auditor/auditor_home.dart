@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_role.dart';
 import '../../widgets/role_badge.dart';
+import '../../services/auth_service.dart';
 
 /// Day 1 stub. Compliance status + audit reports built out Day 6.
 class AuditorHome extends StatelessWidget {
@@ -11,10 +12,15 @@ class AuditorHome extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AtlasAI — Auditor'),
-        actions: const [
-          Padding(
+        actions: [
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: RoleBadge(role: UserRole.auditor),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+            onPressed: () => AuthService().signOut(),
           ),
         ],
       ),

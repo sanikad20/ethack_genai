@@ -3,8 +3,10 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../models/chat_message.dart';
 import '../../services/orchestrator_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/confidence_badge.dart';
 import '../../widgets/citation_chips.dart';
+import '../upload_document_screen.dart';
 
 /// Day 3 deliverable: chat + voice input UI for the Knowledge Agent.
 /// Talks to POST /query and renders merged_answer, confidence, and
@@ -125,7 +127,27 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AtlasAI — Knowledge Agent')),
+      appBar: AppBar(
+        title: const Text('AtlasAI — Knowledge Agent'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Upload document',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const UploadDocumentScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+            onPressed: () => AuthService().signOut(),
+            // No explicit navigation needed — AuthGate in main.dart
+            // reacts to the auth state change and routes back to
+            // LoginScreen automatically.
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

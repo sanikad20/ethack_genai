@@ -12,6 +12,8 @@ from app.models.schemas import (
 from app.services import ingestion
 from app.services import embeddings
 from app.services.chroma_client import get_documents_collection
+from app.services.knowledge_graph import knowledge_graph
+from app.routers import graph as graph_router
 
 app = FastAPI(title="AtlasAI Backend")
 
@@ -21,6 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(graph_router.router, prefix="/graph", tags=["knowledge-graph"])
 
 
 @app.get("/ping")
@@ -53,6 +57,21 @@ async def ingest(
     equipment_tags = ingestion.extract_equipment_tags(full_text)
     graph_edges = ingestion.build_graph_edges(doc_id, equipment_tags)
 
+    # Day 4: dates + personnel extraction, and graph seeding in Firestore.
+    # Wrapped so a Firestore/credentials issue never breaks ingestion —
+    # the doc still gets chunked/embedded/returned normally either way.
+    dates = ingestion.extract_dates(full_text)
+    personnel = ingestion.extract_personnel(full_text)
+    try:
+        edges_created = knowledge_graph.add_edges_from_entities(
+            document_id=doc_id,
+            equipment_tags=equipment_tags,
+            personnel=personnel,
+            dates=dates,
+        )
+    except Exception:
+        edges_created = 0
+
     collection = get_documents_collection()
     ids, docs, metadatas = [], [], []
     for page_num, page_text in enumerate(pages, start=1):
@@ -79,4 +98,7 @@ async def ingest(
         chunkCount=len(ids),
         equipmentTags=equipment_tags,
         graphEdges=graph_edges,
+        dates=dates,
+        personnel=[{"name": p["name"], "role": p["role"]} for p in personnel],
+        graphEdgesCreatedInKG=edges_created,
     )

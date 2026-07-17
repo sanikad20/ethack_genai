@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'services/orchestrator_service.dart';
+import 'services/auth_service.dart';
 import 'screens/home_shell.dart';
+import 'screens/auth/login_screen.dart';
 import 'models/user_role.dart';
-import 'screens/upload_document_screen.dart';
-import 'screens/technician/chat_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,131 +26,64 @@ class AtlasAIApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF1F4E5F),
         useMaterial3: true,
       ),
-      home: const DevHomeScreen(),
+      home: const AuthGate(),
     );
   }
 }
 
-/// Temporary dev/demo menu — NOT the real app entry point.
-/// Role-based login (Day 4) replaces this with HomeShell(role: <real role>)
-/// straight after auth. Until then, this is the fastest way to jump
-/// between whatever's currently working for testing and demos.
-class DevHomeScreen extends StatelessWidget {
-  const DevHomeScreen({super.key});
+/// Day 4: listens to Firebase Auth state and routes to the right
+/// screen. Replaces Day 1's DevHomeScreen as the real app entry point.
+///
+///   no session          -> LoginScreen
+///   session, has role    -> HomeShell(role: <fetched role>)
+///   session, no role doc -> back to LoginScreen (interrupted signup —
+///                           see AuthService.fetchUserRole)
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AtlasAI — Dev Menu')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const _StatusCard(),
-          const SizedBox(height: 20),
-          _MenuTile(
-            icon: Icons.chat_bubble_outline,
-            title: 'Knowledge Agent Chat',
-            subtitle: 'Day 3 — ask questions by text or voice',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ChatScreen(userRole: 'technician')),
-            ),
-          ),
-          _MenuTile(
-            icon: Icons.upload_file,
-            title: 'Upload Document',
-            subtitle: 'Day 2 — ingest a PDF into the knowledge base',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UploadDocumentScreen()),
-            ),
-          ),
-          _MenuTile(
-            icon: Icons.dashboard_outlined,
-            title: 'Role Shell (stub)',
-            subtitle: 'Day 4+ — role-based navigation, technician role for now',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeShell(role: UserRole.technician)),
-            ),
-          ),
-        ],
-      ),
+    final authService = AuthService();
+
+    return StreamBuilder<User?>(
+      stream: authService.authStateChanges,
+      builder: (context, authSnapshot) {
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const _LoadingScreen();
+        }
+
+        final user = authSnapshot.data;
+        if (user == null) {
+          return const LoginScreen();
+        }
+
+        return FutureBuilder<UserRole>(
+          future: authService.fetchUserRole(user.uid),
+          builder: (context, roleSnapshot) {
+            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+              return const _LoadingScreen();
+            }
+            if (roleSnapshot.hasError) {
+              // Profile doc missing (interrupted signup) — sign out and
+              // send back to login rather than get stuck on a spinner.
+              authService.signOut();
+              return const LoginScreen();
+            }
+            return HomeShell(role: roleSnapshot.data!);
+          },
+        );
+      },
     );
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard();
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
 
   @override
   Widget build(BuildContext context) {
-    final orchestrator = OrchestratorService();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Backend Status', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            const Text('Firebase connected ✅'),
-            const SizedBox(height: 6),
-            FutureBuilder<bool>(
-              future: orchestrator.ping(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Row(
-                    children: [
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 8),
-                      Text('Pinging FastAPI orchestrator...'),
-                    ],
-                  );
-                }
-                final ok = snapshot.data ?? false;
-                return Text(
-                  ok
-                      ? 'Backend reachable ✅ (Docker + FastAPI)'
-                      : 'Backend unreachable ⚠️ — is docker-compose up?',
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _MenuTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

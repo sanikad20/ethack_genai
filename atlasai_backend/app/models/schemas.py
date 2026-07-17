@@ -34,6 +34,11 @@ class GraphEdgeOut(BaseModel):
     relation: str
 
 
+class PersonOut(BaseModel):
+    name: str
+    role: str
+
+
 class IngestResponse(BaseModel):
     docId: str
     fileName: str
@@ -42,3 +47,6 @@ class IngestResponse(BaseModel):
     chunkCount: int
     equipmentTags: List[str]
     graphEdges: List[GraphEdgeOut]
+    dates: List[str] = []
+    personnel: List[PersonOut] = []
+    graphEdgesCreatedInKG: int = 0  # 0 if Firestore isn't configured yet — not an error

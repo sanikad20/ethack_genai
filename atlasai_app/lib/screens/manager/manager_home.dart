@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_role.dart';
 import '../../widgets/role_badge.dart';
+import '../../services/auth_service.dart';
 
 /// Day 1 stub. Plant Intelligence Dashboard built out Day 6.
 class ManagerHome extends StatelessWidget {
@@ -11,10 +12,15 @@ class ManagerHome extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AtlasAI — Plant Manager'),
-        actions: const [
-          Padding(
+        actions: [
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: RoleBadge(role: UserRole.manager),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+            onPressed: () => AuthService().signOut(),
           ),
         ],
       ),

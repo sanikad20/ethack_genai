@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 from app.agents.base import BaseAgent
 from app.services import embeddings, ingestion, groq_client
 from app.services.chroma_client import get_documents_collection
+from app.services.knowledge_graph import knowledge_graph
 
 CITATION_PATTERN = re.compile(r"\[(\d+)\]")
 
@@ -132,6 +133,21 @@ class KnowledgeAgent(BaseAgent):
         except Exception as e:
             answer = "Groq generation unavailable (" + str(e) + "). Top matching passage: " + top[0][0][:400]
             reasoning = f"Retrieved {len(top)} chunks via semantic search; LLM generation step failed, showing extractive fallback."
+
+        # Day 4: append Knowledge Graph context to the reasoning trace,
+        # additive only — never overwrites the retrieval reasoning above.
+        # Safe to call even without Firestore configured (returns {}).
+        if query_tags:
+            try:
+                graph_context = knowledge_graph.enrich_context(sorted(query_tags))
+                graph_notes = []
+                for tag, ctx in graph_context.items():
+                    if ctx.get("people"):
+                        graph_notes.append(f"{len(ctx['people'])} known contact(s) for {tag}")
+                if graph_notes:
+                    reasoning += " Knowledge Graph: " + "; ".join(graph_notes) + "."
+            except Exception:
+                pass  # graph enrichment is best-effort, never breaks the answer
 
         # Confidence reflects what the answer actually cited, not just
         # the single best-ranked chunk. If the answer drew on multiple
