@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../models/chat_message.dart';
+import '../../models/user_role.dart';
 import '../../services/orchestrator_service.dart';
-import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/confidence_badge.dart';
 import '../../widgets/citation_chips.dart';
+import '../../widgets/account_menu.dart';
 import '../upload_document_screen.dart';
+import '../lessons_learned/lessons_learned_timeline_screen.dart';
+import '../knowledge_capture/knowledge_capture_screen.dart';
 
-/// Day 3 deliverable: chat + voice input UI for the Knowledge Agent.
-/// Talks to POST /query and renders merged_answer, confidence, and
-/// source citations for every response (Explainable AI panel).
+/// Knowledge Agent chat — text + voice input. Logic unchanged from
+/// Day 3; this pass is purely the professional UI restyle plus the
+/// Day 4 AccountMenu (role display + sign out).
 class ChatScreen extends StatefulWidget {
   final String userRole;
   const ChatScreen({super.key, this.userRole = 'technician'});
@@ -128,59 +132,70 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AtlasAI — Knowledge Agent'),
+        title: const Text('Knowledge Agent'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload_file),
-            tooltip: 'Upload document',
+            icon: const Icon(Icons.upload_file_outlined),
+            tooltip: 'Upload a document',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const UploadDocumentScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => AuthService().signOut(),
-            // No explicit navigation needed — AuthGate in main.dart
-            // reacts to the auth state change and routes back to
-            // LoginScreen automatically.
+            icon: const Icon(Icons.timeline_outlined),
+            tooltip: 'Lessons Learned Timeline',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LessonsLearnedTimelineScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.record_voice_over_outlined),
+            tooltip: 'Capture knowledge',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const KnowledgeCaptureScreen()),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: 12, left: 4),
+            child: AccountMenu(role: UserRole.technician),
           ),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            color: AppColors.surface,
             child: TextField(
               controller: _equipmentIdController,
+              style: const TextStyle(fontSize: 13.5),
               decoration: const InputDecoration(
                 labelText: 'Equipment ID (optional)',
                 hintText: 'e.g. PUMP-04',
                 isDense: true,
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.tag, size: 18),
               ),
             ),
           ),
+          const Divider(height: 1),
           Expanded(
-            child: _messages.isEmpty
-                ? const _EmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, i) => _MessageBubble(message: _messages[i]),
-                  ),
+            child: Container(
+              color: AppColors.background,
+              child: _messages.isEmpty
+                  ? const _EmptyState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) => _MessageBubble(message: _messages[i]),
+                    ),
+            ),
           ),
           if (_isSending)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
-              child: SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+            const LinearProgressIndicator(minHeight: 2, color: AppColors.primary),
           _buildInputBar(),
         ],
       ),
@@ -189,24 +204,35 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildInputBar() {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
+      child: Container(
+        color: AppColors.surface,
+        padding: const EdgeInsets.all(10),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            IconButton(
-              onPressed: _toggleListening,
-              icon: Icon(
-                _isListening ? Icons.mic : Icons.mic_none,
-                color: _isListening ? Colors.red : null,
+            Container(
+              decoration: BoxDecoration(
+                color: _isListening ? AppColors.dangerBg : AppColors.surfaceMuted,
+                shape: BoxShape.circle,
               ),
-              tooltip: 'Ask by voice',
+              child: IconButton(
+                onPressed: _toggleListening,
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? AppColors.danger : AppColors.primary,
+                ),
+                tooltip: 'Ask by voice',
+              ),
             ),
+            const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _textController,
+                minLines: 1,
+                maxLines: 4,
+                style: const TextStyle(fontSize: 14.5),
                 decoration: const InputDecoration(
                   hintText: 'Ask AtlasAI — e.g. "What do I check first when Pump 4 vibrates?"',
-                  border: OutlineInputBorder(),
                   isDense: true,
                 ),
                 onSubmitted: (_) => _send(),
@@ -214,9 +240,12 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: _isSending ? null : _send,
-              icon: const Icon(Icons.send),
+            Container(
+              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+              child: IconButton(
+                onPressed: _isSending ? null : _send,
+                icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+              ),
             ),
           ],
         ),
@@ -232,16 +261,25 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.hub_outlined, size: 40, color: AppColors.primary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('Ask the Knowledge Agent', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
             Text(
-              'Ask a question by typing or tapping the mic.\nAnswers are grounded in your plant\'s documents.',
+              'Type a question or tap the mic. Answers are\ngrounded in your plant\'s ingested documents.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
         ),
@@ -257,36 +295,109 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
-    final bgColor = isUser
-        ? Theme.of(context).colorScheme.primaryContainer
-        : (message.isError ? Colors.red.shade50 : Colors.grey.shade100);
+
+    if (isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+          margin: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(4),
+            ),
+          ),
+          child: Text(message.text, style: const TextStyle(color: Colors.white, fontSize: 14.5)),
+        ),
+      );
+    }
+
+    final bgColor = message.isError ? AppColors.dangerBg : AppColors.surface;
+    final borderColor = message.isError ? AppColors.danger.withOpacity(0.3) : AppColors.border;
 
     return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(16),
+          ),
+          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message.text),
             if (!isUser && !message.isError) ...[
+              Row(
+                children: [
+                  Container(
+                    width: 22, height: 22,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.hub_outlined, size: 13, color: Colors.white),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    'Knowledge Agent',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                        ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
-              ConfidenceBadge(confidence: message.confidence ?? 0.0),
+            ],
+            Text(
+              message.text,
+              style: TextStyle(
+                fontSize: 14.5,
+                color: message.isError ? AppColors.danger : AppColors.textPrimary,
+              ),
+            ),
+            if (!isUser && !message.isError) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  ConfidenceBadge(confidence: message.confidence ?? 0.0),
+                ],
+              ),
               if (message.sources.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 CitationChips(sources: message.sources),
               ],
               if (message.reasoning != null && message.reasoning!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  message.reasoning!,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lightbulb_outline, size: 13, color: AppColors.textFaint),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        message.reasoning!,
+                        style: const TextStyle(
+                          fontSize: 11.5, color: AppColors.textFaint, fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],

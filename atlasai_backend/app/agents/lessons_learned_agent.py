@@ -1,56 +1,39 @@
 from typing import Any, Dict
-
 from app.agents.base import BaseAgent
-from app.services import groq_client, retrieval
-
-SYSTEM_PROMPT = (
-    "You are the Lessons Learned Agent for AtlasAI. You compare the "
-    "current situation against past documented incidents, near-misses, "
-    "and inspection findings to surface transferable lessons. Using "
-    "ONLY the provided context entries, identify which past entries are "
-    "genuinely similar to the current situation, and summarize the "
-    "lesson(s) or precaution(s) that apply. Cite entries inline as "
-    "[1], [2] etc. If nothing in the context is meaningfully similar, "
-    "say so plainly rather than forcing a connection."
-)
+from app.services import lessons_learned_service
 
 
 class LessonsLearnedAgent(BaseAgent):
+    """Day 5: finds historical incidents similar to the current query,
+    via embedding similarity over incident-classified documents."""
+
     name = "lessons_learned_agent"
 
     async def handle(self, request: Dict[str, Any]) -> Dict[str, Any]:
         query = request.get("query", "")
-        context = request.get("context", {})
-        equipment_id = context.get("equipment_id")
+        matches = await lessons_learned_service.find_similar_incidents(query, top_k=3)
 
-        r = await retrieval.retrieve(query, equipment_id=equipment_id, n_results=8, top_k=5)
-
-        if not r["top"]:
+        if not matches:
             return {
                 "agent": self.name,
-                "answer": "No historical documents ingested yet — nothing to compare against.",
+                "answer": "No similar historical incidents found.",
                 "confidence": 0.0,
                 "sources": [],
-                "reasoning": "Chroma `documents` collection is empty.",
+                "reasoning": "No incident-classified documents matched above the similarity threshold.",
             }
 
-        user_prompt = f"Past documented entries:\n{r['context_block']}\n\nCurrent situation: {query}"
-
-        try:
-            answer = await groq_client.chat_completion(SYSTEM_PROMPT, user_prompt)
-            reasoning = (
-                f"Searched {len(r['top'])} past entries via open semantic similarity "
-                "(not equipment-filtered, to catch cross-equipment pattern matches). "
-                "Lessons summarized by Llama 3.3 70B (Groq), grounded in retrieved entries."
-            )
-        except Exception as e:
-            answer = "Groq generation unavailable (" + str(e) + "). Closest matching entry: " + r["top"][0][0][:400]
-            reasoning = f"Retrieved {len(r['top'])} entries; LLM generation failed, showing extractive fallback."
+        top = matches[0]
+        equipment_note = f" (equipment: {top['equipmentId']})" if top.get("equipmentId") else ""
+        answer = (
+            f"Found {len(matches)} similar past incident(s). "
+            f"Most similar{equipment_note}: \u201c{top['snippet']}\u201d"
+        )
+        sources = sorted({m["fileName"] for m in matches if m.get("fileName")})
 
         return {
             "agent": self.name,
             "answer": answer,
-            "confidence": r["confidence"],
-            "sources": r["sources"],
-            "reasoning": reasoning,
+            "confidence": round(top["similarity"], 2),
+            "sources": sources,
+            "reasoning": f"Matched against {len(matches)} historical incident report(s) via embedding similarity.",
         }

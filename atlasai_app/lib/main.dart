@@ -1,89 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
-import 'services/auth_service.dart';
-import 'screens/home_shell.dart';
-import 'screens/auth/login_screen.dart';
-import 'models/user_role.dart';
+import 'theme/app_theme.dart';
+import 'screens/auth_gate.dart';
+import 'services/fcm_service.dart';
+
+final GlobalKey<ScaffoldMessengerState> rootMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Day 5: must be registered before runApp — this is what lets FCM
+  // wake a background isolate to show a system notification when the
+  // app isn't in the foreground.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   runApp(const AtlasAIApp());
 }
 
-class AtlasAIApp extends StatelessWidget {
+class AtlasAIApp extends StatefulWidget {
   const AtlasAIApp({super.key});
+
+  @override
+  State<AtlasAIApp> createState() => _AtlasAIAppState();
+}
+
+class _AtlasAIAppState extends State<AtlasAIApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Fire-and-forget: subscribes to the 'lessons_learned' topic and
+    // requests notification permission. Doesn't block first frame —
+    // permission prompts feel better after the UI is already visible.
+    FcmService().init(rootMessengerKey);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'AtlasAI',
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF1F4E5F),
-        useMaterial3: true,
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      scaffoldMessengerKey: rootMessengerKey,
       home: const AuthGate(),
-    );
-  }
-}
-
-/// Day 4: listens to Firebase Auth state and routes to the right
-/// screen. Replaces Day 1's DevHomeScreen as the real app entry point.
-///
-///   no session          -> LoginScreen
-///   session, has role    -> HomeShell(role: <fetched role>)
-///   session, no role doc -> back to LoginScreen (interrupted signup —
-///                           see AuthService.fetchUserRole)
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authService = AuthService();
-
-    return StreamBuilder<User?>(
-      stream: authService.authStateChanges,
-      builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingScreen();
-        }
-
-        final user = authSnapshot.data;
-        if (user == null) {
-          return const LoginScreen();
-        }
-
-        return FutureBuilder<UserRole>(
-          future: authService.fetchUserRole(user.uid),
-          builder: (context, roleSnapshot) {
-            if (roleSnapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingScreen();
-            }
-            if (roleSnapshot.hasError) {
-              // Profile doc missing (interrupted signup) — sign out and
-              // send back to login rather than get stuck on a spinner.
-              authService.signOut();
-              return const LoginScreen();
-            }
-            return HomeShell(role: roleSnapshot.data!);
-          },
-        );
-      },
-    );
-  }
-}
-
-class _LoadingScreen extends StatelessWidget {
-  const _LoadingScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
