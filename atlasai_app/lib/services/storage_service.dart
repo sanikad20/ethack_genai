@@ -1,22 +1,28 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
-/// Day 5: same upload/ingest logic as before — only additions are
-/// passing technician_id to the backend (enables the new person<->
-/// equipment graph edges) and persisting docType/similarIncidents/
-/// alertSent from the response, which the Lessons Learned Timeline
-/// screen reads. No existing field or behavior changed.
+/// Day 5: same upload/ingest logic as before — passes technician_id to
+/// the backend (enables the person<->equipment graph edges) and
+/// persists docType/similarIncidents/alertSent from the response, which
+/// the Lessons Learned Timeline screen reads.
+///
+/// Firebase Storage removed: the project is on the free Spark plan,
+/// which doesn't provision a Storage bucket (requires Blaze). The PDF
+/// still reaches the backend directly via the /ingest multipart
+/// request below — that's what actually drives ingestion, entity
+/// extraction, the Knowledge Graph, and Lessons Learned matching.
+/// Storage was only ever used for a persistent download link
+/// (`storageUrl`), which nothing else in the app reads from — dropping
+/// it doesn't remove any real functionality, just that link.
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final String backendBaseUrl;
 
-  StorageService({this.backendBaseUrl = 'http://10.64.147.154:8000'});
+  StorageService({this.backendBaseUrl = 'http://10.13.105.154:8000'});
 
   Future<Map<String, dynamic>> uploadAndIngest(
     File file,
@@ -25,13 +31,8 @@ class StorageService {
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
 
-    final ref = _storage.ref().child('documents/$fileName');
-    await ref.putFile(file);
-    final downloadUrl = await ref.getDownloadURL();
-
     final docRef = await _db.collection('documents').add({
       'fileName': fileName,
-      'storageUrl': downloadUrl,
       'uploadedBy': uid,
       'uploadedAt': FieldValue.serverTimestamp(),
       'status': 'pending',

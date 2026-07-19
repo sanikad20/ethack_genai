@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 /// 10.0.2.2 for Android emulator, adjust for other targets.
 class CaptureService {
   final String baseUrl;
-  CaptureService({this.baseUrl = 'http://10.64.147.154:8000'});
+  CaptureService({this.baseUrl = 'http://10.13.105.154:8000'});
 
   Future<List<String>> fetchQuestions({String? equipmentId}) async {
     final uri = Uri.parse('$baseUrl/capture/questions').replace(

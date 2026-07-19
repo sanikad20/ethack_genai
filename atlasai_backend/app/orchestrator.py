@@ -31,9 +31,21 @@ class Orchestrator:
 
     def _route(self, request: OrchestratorRequest) -> List[str]:
         """Decide which agent(s) should handle this request.
-        Day 1: if the caller doesn't force specific agents, default to
-        the Knowledge Agent. Keyword routing gets refined per-agent as
-        each one comes online (Day 3, 5, 6)."""
+
+        knowledge_agent is additive, not a last-resort fallback: it's
+        the only agent that LLM-synthesizes a real answer (the others
+        are retrieval-only by design — see maintenance_agent's
+        docstring). A query like "what fixed the vibration issue"
+        matches maintenance_agent's keywords ("vibrat") AND wants a
+        synthesized answer, not just the raw top-matching chunk — so it
+        needs both. Previously knowledge_agent only ran when nothing
+        else matched, meaning any maintenance/compliance/incident
+        keyword silently skipped synthesis entirely.
+
+        knowledge_capture_agent is the one exception: an actual capture/
+        interview request wants that flow specifically, not a synthesized
+        answer about something.
+        """
         if request.agents:
             return request.agents
 
@@ -48,8 +60,9 @@ class Orchestrator:
         if any(w in q for w in ["capture", "interview", "record my experience"]):
             selected.append("knowledge_capture_agent")
 
-        if not selected:
+        if "knowledge_capture_agent" not in selected:
             selected.append("knowledge_agent")
+
         return selected
 
     async def handle(self, request: OrchestratorRequest) -> OrchestratorResponse:
@@ -71,7 +84,18 @@ class Orchestrator:
             results.append(AgentResult(**raw))
 
         if results:
-            merged_answer = " | ".join(r.answer for r in results)
+            # Prefer knowledge_agent's answer for merged_answer — it's
+            # the synthesized, citation-grounded one. Specialist agents
+            # (maintenance/compliance/lessons_learned) still run and
+            # their results are available in `results` for sources/
+            # context, but their raw retrieval dumps shouldn't be what
+            # the user reads as "the answer" when a synthesized one
+            # exists alongside it.
+            knowledge_result = next((r for r in results if r.agent == "knowledge_agent"), None)
+            if knowledge_result:
+                merged_answer = knowledge_result.answer
+            else:
+                merged_answer = " | ".join(r.answer for r in results)
             overall_confidence = sum(r.confidence for r in results) / len(results)
         else:
             merged_answer = "No agent could handle this request."

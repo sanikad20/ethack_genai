@@ -26,21 +26,57 @@ class MaintenanceAgent(BaseAgent):
         collection = get_documents_collection()
         query_vec = await embeddings.embed(query)
 
-        where_filter: Dict[str, Any] = {"doc_type": {"$in": ["maintenance_record", "incident", "general_document"]}}
-        if equipment_id:
-            where_filter = {"$and": [where_filter, {"equipment_id": equipment_id}]}
+        # Server-side `where` filtering hit inconsistent behavior across
+        # this ChromaDB version (a flat multi-key dict raised "exactly
+        # one operator"; the $and-wrapped version parsed fine but
+        # returned zero matches despite matching documents existing).
+        # Sidestepping it entirely: retrieve broadly, then filter/rank
+        # client-side in Python — the exact pattern knowledge_agent.py
+        # already uses successfully in this codebase for equipment-tag
+        # matching, so this isn't a new approach, just reusing the one
+        # that's proven to work here.
+        n_results = min(8, collection.count())
+        results = collection.query(query_embeddings=[query_vec], n_results=n_results)
 
-        try:
-            results = collection.query(query_embeddings=[query_vec], n_results=3, where=where_filter)
-        except Exception:
-            # Equipment-scoped filter found nothing indexable (e.g. no
-            # chunks tagged with that equipment_id yet) — retry unscoped
-            # rather than returning a hard failure.
-            results = collection.query(query_embeddings=[query_vec], n_results=3)
+        allowed_doc_types = {"maintenance_record", "incident", "general_document", "knowledge_capture"}
+        all_docs = results.get("documents", [[]])[0]
+        all_metas = results.get("metadatas", [[]])[0]
+        all_dists = results.get("distances", [[]])[0]
 
-        docs = results.get("documents", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-        distances = results.get("distances", [[]])[0]
+        # Diagnostic: three different filter mechanisms have all failed
+        # to match equipment_id == 'PUMP-04' scoped, while all succeed
+        # unscoped — this shows exactly what's actually stored, to
+        # confirm whether the bug is in storage (ingest) rather than in
+        # any of the query-side filter attempts.
+        print(
+            f"[maintenance_agent] stored equipment_id values in top-{len(all_metas)}: "
+            f"{[repr(m.get('equipment_id')) for m in all_metas]} | looking for {equipment_id!r}",
+            flush=True,
+        )
+
+        filtered = [
+            (doc, meta, dist)
+            for doc, meta, dist in zip(all_docs, all_metas, all_dists)
+            if meta.get("doc_type") in allowed_doc_types
+            and (not equipment_id or meta.get("equipment_id") == equipment_id)
+        ]
+
+        if not filtered and equipment_id:
+            # Nothing tagged for this exact equipment_id — relax to
+            # doc_type only rather than failing outright, in case of an
+            # equipment_id casing/format mismatch between this query and
+            # what was stored at ingest time.
+            print(f"[maintenance_agent] 0 matches for equipment_id={equipment_id!r}, retrying without equipment scope", flush=True)
+            filtered = [
+                (doc, meta, dist)
+                for doc, meta, dist in zip(all_docs, all_metas, all_dists)
+                if meta.get("doc_type") in allowed_doc_types
+            ]
+
+        filtered.sort(key=lambda item: item[2])  # ascending distance = best match first
+        docs = [f[0] for f in filtered[:3]]
+        metadatas = [f[1] for f in filtered[:3]]
+        distances = [f[2] for f in filtered[:3]]
 
         if not docs:
             return {

@@ -66,63 +66,68 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('AtlasAI — Sign In')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(Icons.hub_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 12),
-                  Text(
-                    'AtlasAI',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                    validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
-                    validator: (v) => (v == null || v.length < 6) ? 'Minimum 6 characters' : null,
-                  ),
-                  if (_errorMessage != null) ...[
+      // SingleChildScrollView: lets the form scroll up when the
+      // on-screen keyboard shrinks the viewport, instead of the
+      // Column below overflowing past the bottom edge.
+      body: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(Icons.hub_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(height: 12),
-                    Text(_errorMessage!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    Text(
+                      'AtlasAI',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                      validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                      validator: (v) => (v == null || v.length < 6) ? 'Minimum 6 characters' : null,
+                    ),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(_errorMessage!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    ],
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _loading ? null : _submit,
+                      child: _loading
+                          ? const SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Sign In'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SignupScreen()),
+                              ),
+                      child: const Text("Don't have an account? Sign up"),
+                    ),
                   ],
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _loading ? null : _submit,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Sign In'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _loading
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SignupScreen()),
-                            ),
-                    child: const Text("Don't have an account? Sign up"),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
