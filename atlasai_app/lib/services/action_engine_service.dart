@@ -12,7 +12,7 @@ class ActionEngineService {
   ActionEngineService({
     // Keep this in sync with OrchestratorService's baseUrl — same
     // backend machine.
-    this.baseUrl = 'http://192.168.29.99:8000',
+    this.baseUrl = 'https://ethack-genai.onrender.com',
   });
 
   Future<Map<String, dynamic>> generate({
