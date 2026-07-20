@@ -13,6 +13,8 @@ from app.models.schemas import (
     CaptureQuestionsResponse,
     CaptureSubmitRequest,
     CaptureSubmitResponse,
+    ActionGenerateRequest,
+    ActionGenerateResponse,
 )
 from app.services import ingestion
 from app.services import embeddings
@@ -21,6 +23,7 @@ from app.services import graph_service
 from app.services import lessons_learned_service
 from app.services import notification_service
 from app.services import capture_templates
+from app.services import action_engine
 from app.services.chroma_client import get_documents_collection
 
 app = FastAPI(title="AtlasAI Backend")
@@ -217,3 +220,26 @@ async def capture_submit(payload: CaptureSubmitRequest):
     )
 
     return CaptureSubmitResponse(cardId=card_id, structuredSummary=structured_summary, stored=True)
+
+
+# --- Day 6: AI Action Engine ---
+
+@app.post("/actions/generate", response_model=ActionGenerateResponse)
+async def generate_action(payload: ActionGenerateRequest):
+    """Generates an RCA report, maintenance checklist, inspection
+    schedule, or audit report — grounded in whatever's been ingested
+    for the given equipment, same retrieval as the Knowledge Agent uses.
+    This is the Action Generation step in the Demo Flow: triggered from
+    the same context a query was just answered in, not a separate
+    disconnected feature."""
+    try:
+        result = await action_engine.generate_action(
+            action_type=payload.action_type,
+            query=payload.query or "",
+            equipment_id=payload.equipment_id,
+            user_role=payload.user_role or "technician",
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    return ActionGenerateResponse(**result)

@@ -5,8 +5,7 @@ import '../../models/chat_message.dart';
 import '../../models/user_role.dart';
 import '../../services/orchestrator_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/confidence_badge.dart';
-import '../../widgets/citation_chips.dart';
+import '../../widgets/explainable_ai_panel.dart';
 import '../../widgets/account_menu.dart';
 import '../upload_document_screen.dart';
 import '../lessons_learned/lessons_learned_timeline_screen.dart';
@@ -259,43 +258,31 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // LayoutBuilder + SingleChildScrollView so that when the available
-    // height shrinks (e.g. keyboard open on a small device), the content
-    // scrolls instead of overflowing (RenderFlex overflow). When there's
-    // enough room it still centers vertically exactly like before.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.hub_outlined, size: 40, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Ask the Knowledge Agent', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Type a question or tap the mic. Answers are\ngrounded in your plant\'s ingested documents.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.hub_outlined, size: 40, color: AppColors.primary),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: AppSpacing.md),
+            Text('Ask the Knowledge Agent', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
+            Text(
+              'Type a question or tap the mic. Answers are\ngrounded in your plant\'s ingested documents.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -383,35 +370,11 @@ class _MessageBubble extends StatelessWidget {
             ),
             if (!isUser && !message.isError) ...[
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  ConfidenceBadge(confidence: message.confidence ?? 0.0),
-                ],
+              ExplainableAiPanel(
+                confidence: message.confidence ?? 0.0,
+                sources: message.sources,
+                reasoning: message.reasoning,
               ),
-              if (message.sources.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                CitationChips(sources: message.sources),
-              ],
-              if (message.reasoning != null && message.reasoning!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.lightbulb_outline, size: 13, color: AppColors.textFaint),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        message.reasoning!,
-                        style: const TextStyle(
-                          fontSize: 11.5, color: AppColors.textFaint, fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ],
         ),

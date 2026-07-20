@@ -105,3 +105,20 @@ class CaptureSubmitResponse(BaseModel):
     cardId: str
     structuredSummary: str
     stored: bool
+
+
+# --- Day 6: AI Action Engine ---
+
+class ActionGenerateRequest(BaseModel):
+    action_type: str   # rca_report | maintenance_checklist | inspection_schedule | audit_report
+    query: Optional[str] = None
+    equipment_id: Optional[str] = None
+    user_role: Optional[str] = "technician"
+
+
+class ActionGenerateResponse(BaseModel):
+    actionType: str
+    title: str
+    content: str
+    sources: List[str] = []
+    confidence: float
