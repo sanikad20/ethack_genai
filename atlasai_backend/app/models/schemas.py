@@ -23,6 +23,10 @@ class OrchestratorResponse(BaseModel):
     results: List[AgentResult]
     merged_answer: str
     overall_confidence: float
+    # Day 4: filled in when request.equipment_id resolves to graph
+    # neighbors — e.g. "Linked: 2 documents, 3 person/people." Empty
+    # string if there's no equipment_id or no edges yet.
+    graph_context: str = ""
 
 
 class GraphEdgeOut(BaseModel):
@@ -34,9 +38,12 @@ class GraphEdgeOut(BaseModel):
     relation: str
 
 
-class PersonOut(BaseModel):
-    name: str
-    role: str
+class SimilarIncidentOut(BaseModel):
+    docId: str
+    fileName: Optional[str] = None
+    equipmentId: Optional[str] = None
+    similarity: float
+    snippet: str
 
 
 class IngestResponse(BaseModel):
@@ -47,6 +54,54 @@ class IngestResponse(BaseModel):
     chunkCount: int
     equipmentTags: List[str]
     graphEdges: List[GraphEdgeOut]
+    # Day 4:
+    personnel: List[str] = []
     dates: List[str] = []
-    personnel: List[PersonOut] = []
-    graphEdgesCreatedInKG: int = 0  # 0 if Firestore isn't configured yet — not an error
+    docType: str = "general_document"
+    graphPersistedToFirestore: bool = False
+    # Day 5:
+    similarIncidents: List[SimilarIncidentOut] = []
+    alertSent: bool = False
+
+
+class GraphNeighborsResponse(BaseModel):
+    """Day 4 shape — used by GET /graph/{entity_type}/{entity_id}."""
+    entityType: str
+    entityId: str
+    edgeCount: int
+    neighbors: Dict[str, List[str]]
+    edges: List[Dict[str, Any]]
+
+
+class GraphQueryResponse(BaseModel):
+    """Day 5 shape — used by GET /graph/{equipment_id}. Kept alongside
+    GraphNeighborsResponse rather than replacing it: the Day 5 Flutter
+    screens/maintenance_agent.py expect this flatter {connected: [...]}
+    form specifically."""
+    equipmentId: str
+    connected: List[Dict[str, Any]]
+    graphEnabled: bool
+
+
+# --- Day 5: Knowledge Capture Agent ---
+
+class CaptureQuestionsResponse(BaseModel):
+    equipmentId: Optional[str] = None
+    questions: List[str]
+
+
+class CaptureAnswer(BaseModel):
+    question: str
+    answer: str
+
+
+class CaptureSubmitRequest(BaseModel):
+    equipment_id: Optional[str] = None
+    technician_id: Optional[str] = None
+    answers: List[CaptureAnswer]
+
+
+class CaptureSubmitResponse(BaseModel):
+    cardId: str
+    structuredSummary: str
+    stored: bool
