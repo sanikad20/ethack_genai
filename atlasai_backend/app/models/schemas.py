@@ -110,7 +110,7 @@ class CaptureSubmitResponse(BaseModel):
 # --- Day 6: AI Action Engine ---
 
 class ActionGenerateRequest(BaseModel):
-    action_type: str   # rca_report | maintenance_checklist | inspection_schedule | audit_report
+    action_type: str   # rca_report | maintenance_checklist | inspection_schedule | preventive_maintenance | audit_report
     query: Optional[str] = None
     equipment_id: Optional[str] = None
     user_role: Optional[str] = "technician"

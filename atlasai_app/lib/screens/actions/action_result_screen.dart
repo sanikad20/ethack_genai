@@ -35,6 +35,7 @@ class _ActionResultScreenState extends State<ActionResultScreen> {
     'rca_report': 'Root Cause Analysis Report',
     'maintenance_checklist': 'Maintenance Checklist',
     'inspection_schedule': 'Inspection Schedule',
+    'preventive_maintenance': 'Preventive Maintenance Plan',
     'audit_report': 'Audit Report',
   };
 

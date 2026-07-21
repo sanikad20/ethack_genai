@@ -62,12 +62,34 @@ class DashboardService {
 
       final alertSent = doc['alertSent'] as bool? ?? false;
       if (alertSent) {
-        final similarIncidents = List<dynamic>.from(doc['similarIncidents'] ?? const []);
+        final similarIncidentsRaw = List<Map<String, dynamic>>.from(
+          (doc['similarIncidents'] as List? ?? const [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+
+        // CHANGE: previously only `similarIncidents.length` was kept
+        // (matchCount), discarding the actual match content the
+        // backend already computed and stored (fileName, equipmentId,
+        // similarity, snippet — see lessons_learned_service.py). That
+        // discarded detail is exactly what turned the dashboard's "AI
+        // Recommendations" into a generic templated line instead of a
+        // real insight. Now the full match list is kept so the UI can
+        // show the actual matched incident text.
+        final matches = similarIncidentsRaw.map((m) {
+          return SimilarIncidentMatch(
+            fileName: m['fileName'] as String? ?? 'unknown',
+            equipmentId: m['equipmentId'] as String?,
+            similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
+            snippet: m['snippet'] as String? ?? '',
+          );
+        }).toList()
+          ..sort((a, b) => b.similarity.compareTo(a.similarity));
+
         alerts.add(RecentAlert(
           fileName: doc['fileName'] as String? ?? 'unknown',
           equipmentId: linkedIds.isNotEmpty ? linkedIds.first : null,
-          matchCount: similarIncidents.length,
           uploadedAt: uploadedAt,
+          matches: matches,
         ));
       }
     }

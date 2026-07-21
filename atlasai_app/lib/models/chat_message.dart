@@ -20,19 +20,51 @@ class ChatMessage {
   });
 
   /// Builds the assistant message straight from the /query response body.
+  ///
+  /// FIX: previously this pooled `sources` from every agent that ran
+  /// (via `sources.addAll(...)` across all `results`) and always took
+  /// `reasoning` from `results.first`. But `merged_answer` — the text
+  /// actually shown to the user — is the orchestrator's *preferred*
+  /// agent's answer (knowledge_agent if it ran, per orchestrator.py's
+  /// `_route`/merge logic; otherwise whichever ran). When a query
+  /// triggers more than one agent (e.g. a maintenance-flavored
+  /// question also matches knowledge_agent), the citation chips and
+  /// reasoning text were silently mixing in a *different* agent's
+  /// sources/reasoning than the one backing the displayed answer —
+  /// so citation numbers and the confidence badge didn't reliably
+  /// correspond to the text on screen.
+  ///
+  /// Now this mirrors the backend's own selection: pick the same
+  /// single "primary" result (knowledge_agent if present, else the
+  /// first result) and take confidence/sources/reasoning from that
+  /// one result only, in its original order — consistent with what's
+  /// actually displayed.
   factory ChatMessage.fromOrchestratorResponse(Map<String, dynamic> json) {
-    final results = (json['results'] as List?) ?? [];
-    final sources = <String>{};
-    for (final r in results) {
-      sources.addAll(List<String>.from(r['sources'] ?? const []));
+    final results = List<Map<String, dynamic>>.from(
+      (json['results'] as List? ?? const []).map((r) => Map<String, dynamic>.from(r)),
+    );
+
+    Map<String, dynamic>? primary;
+    if (results.isNotEmpty) {
+      primary = results.firstWhere(
+        (r) => r['agent'] == 'knowledge_agent',
+        orElse: () => results.first,
+      );
     }
-    final reasoning = results.isNotEmpty ? results.first['reasoning'] as String? : null;
+
+    final sources = primary != null
+        ? List<String>.from(primary['sources'] ?? const [])
+        : <String>[];
+    final reasoning = primary?['reasoning'] as String?;
+    final confidence = primary != null
+        ? (primary['confidence'] as num?)?.toDouble() ?? 0.0
+        : (json['overall_confidence'] as num?)?.toDouble() ?? 0.0;
 
     return ChatMessage(
       text: json['merged_answer'] as String? ?? '',
       isUser: false,
-      confidence: (json['overall_confidence'] as num?)?.toDouble() ?? 0.0,
-      sources: sources.toList(),
+      confidence: confidence,
+      sources: sources,
       reasoning: reasoning,
     );
   }

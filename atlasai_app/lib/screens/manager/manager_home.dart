@@ -7,6 +7,7 @@ import '../../widgets/role_badge.dart';
 import '../../widgets/stat_card.dart';
 import '../../services/auth_service.dart';
 import '../actions/action_result_screen.dart';
+import '../equipment/equipment_timeline_screen.dart';
 
 /// Day 6: Plant Intelligence Dashboard — Knowledge Coverage, Knowledge
 /// Decay Score, Critical Assets, and AI Recommendations, computed from
@@ -157,6 +158,18 @@ class _ManagerHomeState extends State<ManagerHome> {
                             '${asset.incidentCount} incident(s) recorded'
                             '${asset.lastIncidentDate != null ? ' · last ${_formatDate(asset.lastIncidentDate!)}' : ''}',
                           ),
+                          // NEW: tapping the tile itself opens the
+                          // equipment's timeline + health score.
+                          // "Generate RCA" stays as the trailing
+                          // action, unchanged.
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EquipmentTimelineScreen(
+                                equipmentId: asset.equipmentId,
+                              ),
+                            ),
+                          ),
                           trailing: TextButton(
                             child: const Text('Generate RCA'),
                             onPressed: () => Navigator.push(
@@ -181,34 +194,52 @@ class _ManagerHomeState extends State<ManagerHome> {
                     child: Text('No pattern alerts yet.', style: TextStyle(color: AppColors.textFaint)),
                   )
                 else
-                  ...stats.recentAlerts.map((alert) => Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
-                          title: Text(
-                            'Recommend reviewing ${alert.equipmentId ?? alert.fileName}',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            'Matched ${alert.matchCount} similar past incident(s) — ${alert.fileName}',
-                          ),
-                          trailing: alert.equipmentId == null
-                              ? null
-                              : TextButton(
-                                  child: const Text('Checklist'),
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ActionResultScreen(
-                                        actionType: 'maintenance_checklist',
-                                        equipmentId: alert.equipmentId,
-                                        userRole: 'manager',
-                                      ),
+                  ...stats.recentAlerts.map((alert) {
+                    // CHANGE: previously this always rendered a
+                    // generic templated subtitle ("Matched N similar
+                    // incident(s) — filename") regardless of what was
+                    // actually found. Now it surfaces the single best
+                    // matched incident's real snippet and similarity
+                    // score — the actual AI insight — and falls back
+                    // to the old generic line only if, for some
+                    // reason, no match detail is available.
+                    final best = alert.bestMatch;
+                    final subtitle = best != null
+                        ? '"${best.snippet.trim()}"\n'
+                            '${(best.similarity * 100).toStringAsFixed(0)}% match'
+                            '${best.equipmentId != null ? ' · ${best.equipmentId}' : ''}'
+                            ' · from ${best.fileName}'
+                            '${alert.matchCount > 1 ? ' (+${alert.matchCount - 1} more similar)' : ''}'
+                        : 'Matched ${alert.matchCount} similar past incident(s) — ${alert.fileName}';
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
+                        title: Text(
+                          'Recommend reviewing ${alert.equipmentId ?? alert.fileName}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(subtitle),
+                        isThreeLine: best != null,
+                        trailing: alert.equipmentId == null
+                            ? null
+                            : TextButton(
+                                child: const Text('Checklist'),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ActionResultScreen(
+                                      actionType: 'maintenance_checklist',
+                                      equipmentId: alert.equipmentId,
+                                      userRole: 'manager',
                                     ),
                                   ),
                                 ),
-                        ),
-                      )),
+                              ),
+                      ),
+                    );
+                  }),
               ],
             );
           },
