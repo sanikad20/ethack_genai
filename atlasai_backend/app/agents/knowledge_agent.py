@@ -187,14 +187,23 @@ class KnowledgeAgent(BaseAgent):
 
         {r['context_block']}
 
+        Equipment Filter:
+
+        {equipment_id if equipment_id else "None"}
+
         Technician Question:
 
         {query}
 
-        First, determine the technician's intent from the categories
-        described in your instructions. Then answer using ONLY the
-        retrieved documents above, in the response format that matches
-        that intent. Do not use any other section or format.
+        Instructions:
+
+        - If an Equipment Filter is provided, answer ONLY using information related to that equipment.
+        - Ignore information about other equipment unless the technician explicitly asks for a comparison.
+        - If the retrieved documents do not contain enough information for that equipment, clearly state that instead of using information from other equipment.
+        - Determine the technician's intent from the categories in the system instructions.
+        - Answer ONLY using the retrieved documents.
+        - Do NOT mention the classified intent in your response.
+        - Follow ONLY the response format that matches the detected intent.
         """
 
         try:
