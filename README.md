@@ -1,181 +1,202 @@
-# AtlasAI – Day 2: Document Ingestion Pipeline
+# AtlasAI – AI-Powered Industrial Knowledge & Maintenance Assistant
 
-## Overview
-
-Day 2 implements the complete document ingestion pipeline for **AtlasAI**. Users can upload maintenance manuals in PDF format through the Flutter application. The backend processes the uploaded document by extracting text, splitting it into chunks, generating embeddings, storing them in ChromaDB, and returning metadata such as equipment tags and graph relationships.
-
----
+AtlasAI is an AI-powered industrial maintenance platform that transforms scattered maintenance documents into an intelligent knowledge system. It enables engineers, plant managers, technicians, and auditors to retrieve equipment-specific information, generate operational documents, and make faster, data-driven maintenance decisions using Generative AI.
 
 ## Features
 
-- Upload PDF documents from the Flutter application
-- Optional Equipment ID association
-- FastAPI document ingestion endpoint
-- PDF text extraction
-- Intelligent document chunking
-- Embedding generation
-- Vector storage in ChromaDB
-- Equipment tag extraction
-- Knowledge graph edge generation
-- Upload status and metadata displayed in the app
+### AI Knowledge Assistant
+- Equipment-specific semantic search
+- Retrieval-Augmented Generation (RAG)
+- Context-aware answers grounded in uploaded documents
+- Source citations with confidence scores
+- Knowledge Graph integration for equipment relationships
 
----
+### AI Action Engine
+Generate operational documents instantly:
+- Root Cause Analysis (RCA) Reports
+- Maintenance Checklists
+- Inspection Schedules
+- Preventive Maintenance Plans
+- Audit Reports
 
-## Architecture
+All outputs are generated strictly from retrieved knowledge and include source citations.
 
-```text
-Flutter App
-      │
-      ▼
-Upload PDF
-      │
-      ▼
-FastAPI (/ingest)
-      │
-      ├── Extract PDF Text
-      ├── Split into Chunks
-      ├── Generate Embeddings
-      ├── Store in ChromaDB
-      ├── Extract Equipment Tags
-      └── Build Graph Edges
-      │
-      ▼
-JSON Response
-      │
-      ▼
-Flutter Success Screen
-```
+### Role-Based AI
+AtlasAI adapts responses based on the user's role:
 
----
+- 👨‍🔧 Engineer
+  - Execution-focused maintenance guidance
+  - Hands-on repair procedures
+  - Inspection and troubleshooting
 
-## Backend API
+- 👨‍💼 Plant Manager
+  - Planning and scheduling
+  - Compliance monitoring
+  - Resource allocation
+  - Maintenance strategy
 
-### POST `/ingest`
+- 👷 Technician
+  - Equipment-specific operational assistance
 
-Processes an uploaded PDF document and stores its embeddings.
+- 📋 Auditor
+  - Compliance-oriented reporting
 
-### Request
+### Knowledge Management
+- Upload SOPs
+- Maintenance Logs
+- Incident Reports
+- Sensor Reports
+- Equipment Manuals
+- Inspection Reports
 
-**Multipart Form Data**
+Documents are automatically embedded and indexed for semantic retrieval.
 
-| Field | Type | Required |
-|-------|------|----------|
-| file | PDF | Yes |
-| equipment_id | String | No |
-
----
-
-## Sample Response
-
-```json
-{
-  "docId": "46753e84-01bc-48cb-a789-a6071497b664",
-  "fileName": "manual.pdf",
-  "status": "ingested",
-  "pageCount": 1,
-  "chunkCount": 5,
-  "equipmentTags": [],
-  "graphEdges": []
-}
-```
-
----
-
-## Document Processing Flow
-
-1. User uploads a PDF from the Flutter application.
-2. FastAPI receives the document.
-3. Text is extracted from every page.
-4. The document is divided into smaller chunks.
-5. Embeddings are generated for each chunk.
-6. Embeddings are stored in ChromaDB.
-7. Equipment tags are extracted.
-8. Graph relationships are generated.
-9. The ingestion result is returned to the Flutter application.
+### Explainable AI
+Every generated response includes:
+- Confidence Score
+- Source Documents
+- Inline Citations
+- Grounded Responses (No Hallucinations)
 
 ---
 
 ## Tech Stack
 
 ### Frontend
-
 - Flutter
-- Dart
-- File Picker
-- HTTP
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
 
 ### Backend
-
 - FastAPI
 - Python
 
-### AI & Data
-
+### AI & ML
+- Groq LLM (Llama 3.3 70B)
 - ChromaDB
-- Embedding Model
-- Document Chunking
+- Sentence Transformers
+- Retrieval-Augmented Generation (RAG)
 
-### Infrastructure
-
-- Docker
-- Docker Compose
+### Database
+- Firebase Firestore
+- Chroma Vector Database
 
 ---
 
 ## Project Structure
 
-```text
-atlasai_backend/
+```
+atlasai/
 │
-├── app/
-│   ├── main.py
-│   ├── orchestrator/
+├── atlasai_app/          # Flutter Application
+│
+├── backend/
+│   ├── api/
 │   ├── services/
-│   │   ├── ingestion.py
-│   │   ├── embeddings.py
-│   │   └── chroma_client.py
-│   └── models/
+│   ├── models/
+│   ├── routes/
+│   ├── embeddings/
+│   ├── knowledge_agent.py
+│   ├── action_engine.py
+│   ├── graph_service.py
+│   └── groq_client.py
 │
-atlasai_app/
-│
-├── lib/
-│   ├── screens/
-│   │   └── upload_document_screen.dart
-│   └── services/
-│       ├── storage_service.dart
-│       └── orchestrator_service.dart
+└── README.md
 ```
 
 ---
 
-## Day 2 Deliverables
+## Workflow
 
-- ✅ Flutter PDF upload interface
-- ✅ FastAPI `/ingest` endpoint
-- ✅ PDF text extraction
-- ✅ Document chunking
-- ✅ Embedding generation
-- ✅ ChromaDB vector storage
-- ✅ Equipment tag extraction
-- ✅ Knowledge graph edge generation
-- ✅ Upload status displayed in Flutter
+1. User uploads maintenance documents.
+2. Documents are embedded and stored in ChromaDB.
+3. User asks equipment-specific questions.
+4. AtlasAI retrieves the most relevant document chunks.
+5. Groq LLM generates grounded responses.
+6. Action Engine creates operational documents.
+7. Results include citations, confidence score, and supporting sources.
 
 ---
 
-## Sample Output
+## AI Pipeline
 
-```text
-Upload Successful
-
-Status: ingested
-
-Pages: 1
-
-Chunks: 5
-
-Equipment Tags:
-[]
-
-Document ID:
-46753e84-01bc-48cb-a789-a6071497b664
 ```
+User Query
+      │
+      ▼
+Equipment Detection
+      │
+      ▼
+Semantic Retrieval (ChromaDB)
+      │
+      ▼
+Knowledge Graph Context
+      │
+      ▼
+Groq LLM
+      │
+      ▼
+Role-Aware Response
+      │
+      ▼
+Explainable AI Output
+```
+
+---
+
+## Key Highlights
+
+- Retrieval-Augmented Generation (RAG)
+- Semantic Search
+- Role-Aware AI
+- Explainable AI
+- Knowledge Graph Integration
+- AI Document Generation
+- Equipment-Centric Knowledge Base
+- Confidence Scoring
+- Source Attribution
+
+---
+
+## Future Improvements
+
+- Predictive Maintenance
+- IoT Sensor Integration
+- Real-time Equipment Monitoring
+- Voice-based Maintenance Assistant
+- SAP/ERP Integration
+- Mobile Notifications
+- Multi-language Support
+
+---
+
+## Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/<username>/AtlasAI.git
+```
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+### Flutter
+
+```bash
+cd atlasai_app
+flutter pub get
+flutter run
+```
+
+---
+
+## Team
+
+Built as part of an AI Hackathon to modernize industrial maintenance using Generative AI, Retrieval-Augmented Generation, and Explainable AI.
