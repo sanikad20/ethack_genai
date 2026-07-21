@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/action_engine_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/explainable_ai_panel.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 /// Day 6: shows one generated action (RCA report, maintenance
 /// checklist, inspection schedule, or audit report). Fetches on open
@@ -104,7 +105,17 @@ class _ActionResultScreenState extends State<ActionResultScreen> {
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(color: AppColors.border),
             ),
-            child: Text(content, style: const TextStyle(fontSize: 14, height: 1.5)),
+            child: MarkdownBody(
+              data: content,
+              selectable: true,
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(fontSize: 14, height: 1.5),
+                strong: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           ExplainableAiPanel(confidence: confidence, sources: sources),
