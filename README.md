@@ -1,176 +1,131 @@
-cd ~/ethack_genai
-cat > README.md << 'MDEOF'
-# 🤖 AtlasAI
+# AtlasAI
 
-### **Transforming Industrial Maintenance with Generative AI**
+**ET AI Hackathon 2026 · Problem Statement 8 — Industrial Knowledge Intelligence**
 
-> *"Stop searching through hundreds of manuals. Start asking AtlasAI."*
+### The Unified Asset & Operations Brain for Industrial Teams
 
-AtlasAI is an **AI-powered industrial maintenance assistant** that helps engineers, technicians, plant managers, and auditors instantly retrieve equipment knowledge, diagnose issues, and generate maintenance documents using **Retrieval-Augmented Generation (RAG)**, **Knowledge Graphs**, and **Large Language Models**.
+> "Stop searching through hundreds of manuals. Start asking AtlasAI."
 
-Instead of spending hours searching through SOPs, maintenance logs, and equipment manuals, users can simply ask AtlasAI and receive **accurate, explainable, and source-backed answers in seconds.**
+AtlasAI is an AI-powered industrial maintenance assistant that helps engineers, technicians, plant managers, and auditors retrieve equipment knowledge, diagnose issues, and generate maintenance documents. It's built on Retrieval-Augmented Generation (RAG), a knowledge graph, and a large language model, so answers are grounded in your team's actual documentation instead of guesswork.
+
+Instead of digging through SOPs, maintenance logs, and equipment manuals by hand, you can just ask AtlasAI a question in plain language and get a sourced answer back in seconds.
 
 ---
 
-## 🔗 Live Demo
+## Try It
+
+**App:** [Download / open the AtlasAI app](https://drive.google.com/file/d/1ZdDgrQgCD-Nn1dSDNyetgU0NA_dh2eAS/view?usp=sharing)
 
 **Backend API:** [https://ethack-genai.onrender.com/](https://ethack-genai.onrender.com/)
 
-> ⏳ Hosted on Render's free tier — the first request after a period of inactivity can take **30–60 seconds** to wake the service up. Subsequent requests are fast. Try `GET /ping` first to warm it up before a live demo.
+The backend is hosted on Render's free tier, so the first request after a period of inactivity can take 30-60 seconds to wake the service up. Requests after that are fast. If you're demoing this live, hit `GET /ping` a minute beforehand to warm it up.
 
 ---
 
-## 🌟 Why AtlasAI?
+## Why We Built This
 
-Industrial maintenance teams deal with thousands of pages of documentation.
+Industrial maintenance teams deal with thousands of pages of documentation — manuals, SOPs, inspection logs, incident reports. Finding the right piece of information during an actual equipment failure is usually slow, manual, and easy to get wrong.
 
-Finding the right information during a critical equipment failure is often slow, manual, and error-prone.
-
-**AtlasAI changes that.**
-
-Using AI-powered semantic search and Retrieval-Augmented Generation (RAG), AtlasAI understands maintenance documents like a domain expert and delivers equipment-specific insights grounded in your organization's knowledge.
+AtlasAI uses semantic search and retrieval-augmented generation to read through that documentation the way an experienced engineer would, and gives equipment-specific answers grounded in what's actually been written down, not a generic guess.
 
 ---
 
-## 🚀 What Makes AtlasAI Different?
+## What It Does
 
-✨ **AI Knowledge Assistant**
-- Chat naturally with your maintenance documents
-- Equipment-aware semantic search
-- Context-aware AI responses
-- Source-backed recommendations
+**Knowledge Assistant**
+Ask questions in plain language and get answers grounded in your uploaded maintenance documents, with equipment-aware search and source citations for every response.
 
-🧠 **Retrieval-Augmented Generation (RAG)**
-- Eliminates hallucinations
-- Uses only uploaded maintenance documents
-- Grounded and explainable answers
+**Retrieval-Augmented Generation**
+Answers are built only from what's actually in your documents. If the answer isn't in there, AtlasAI says so instead of making something up.
 
-📄 **AI Action Engine**
-Generate professional maintenance documents within seconds:
+**AI Action Engine**
+Generates maintenance documents on demand:
+- Root Cause Analysis reports
+- Maintenance checklists
+- Inspection reports
+- Preventive maintenance plans
+- Corrective action reports
+- Audit reports
 
-- Root Cause Analysis (RCA)
-- Maintenance Checklists
-- Inspection Reports
-- Preventive Maintenance Plans
-- Corrective Action Reports
-- Audit Reports
+**Role-Based Responses**
+The same question gets answered differently depending on who's asking:
 
-👥 **Role-Based Intelligence**
-
-AtlasAI adapts responses based on the user's role.
-
-👨‍🔧 **Engineer**
-- Technical troubleshooting
-- Repair recommendations
-- Inspection guidance
-
-👨‍💼 **Plant Manager**
-- Maintenance planning
-- Compliance monitoring
-- Resource optimization
-
-👷 **Technician**
-- Step-by-step repair assistance
-- Equipment-specific procedures
-
-📋 **Auditor**
-- Compliance verification
-- Documentation review
-- Audit summaries
+- *Engineer* — technical troubleshooting, repair recommendations, inspection guidance
+- *Plant Manager* — maintenance planning, compliance monitoring, resource allocation
+- *Technician* — step-by-step repair instructions, equipment-specific procedures
+- *Auditor* — compliance verification, documentation review, audit summaries
 
 ---
 
-## ⚡ How AtlasAI Works
+## How It Works
 
 ```text
-             📄 Maintenance Documents
-                      │
-                      ▼
-          AI Document Processing & Embeddings
-                      │
-                      ▼
+             Maintenance Documents
+                      |
+                      v
+          Document Processing & Embeddings
+                      |
+                      v
               Chroma Vector Database
-                      │
-                      ▼
-         🔍 Semantic Search + Knowledge Graph
-                      │
-                      ▼
-            🧠 Groq Llama 3.3 70B
-                      │
-                      ▼
-         💡 Explainable AI Recommendations
-                      │
-                      ▼
-       📋 Action Engine + Knowledge Assistant
-                      │
-                      ▼
-              👤 Role-Based Responses
+                      |
+                      v
+         Semantic Search + Knowledge Graph
+                      |
+                      v
+              Groq — Llama 3.3 70B
+                      |
+                      v
+         Explainable AI Recommendations
+                      |
+                      v
+       Action Engine + Knowledge Assistant
+                      |
+                      v
+              Role-Based Response
 ```
 
-### Architecture Diagram
+### Architecture
 
 ![AtlasAI Architecture](docs/architecture-diagram.jpg)
 
-The system is split into a **Flutter client**, a **FastAPI backend** with five core services (Auth, Document, Knowledge Agent, Action Engine, Graph), an **AI/ML pipeline** (ingestion → chunking → embeddings → ChromaDB → RAG retrieval → Groq generation → response formatting), and external services (Groq API, embeddings model, Firebase).
+The system has three main pieces: a Flutter client, a FastAPI backend running five core services (Auth, Document, Knowledge Agent, Action Engine, Graph), and an AI/ML pipeline that handles ingestion, chunking, embedding, vector storage, retrieval, and generation. External services are Groq (for the LLM) and a sentence-transformers embedding model.
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
-### 🎨 Frontend
-- Flutter
-- Dart
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Storage
+**Frontend**
+Flutter, Dart, Firebase Authentication, Cloud Firestore, Firebase Storage
 
-### ⚙️ Backend
-- FastAPI
-- Python
+**Backend**
+FastAPI, Python
 
-### 🤖 Artificial Intelligence
-- Groq Llama 3.3 70B
-- Retrieval-Augmented Generation (RAG)
-- ChromaDB
-- Sentence Transformers
-- Knowledge Graph
+**AI / ML**
+Groq Llama 3.3 70B, Retrieval-Augmented Generation, ChromaDB, Sentence Transformers, Knowledge Graph
 
-### ☁️ Database
-- Firebase Firestore
-- Chroma Vector Database
+**Database**
+Firebase Firestore, Chroma Vector Database
 
 ---
 
-## 🎯 Key Features
-
-✅ AI Knowledge Assistant
-✅ AI Action Engine
-✅ Retrieval-Augmented Generation (RAG)
-✅ Semantic Search
-✅ Knowledge Graph
-✅ Explainable AI
-✅ Role-Based AI
-✅ Source Citations
-✅ Confidence Scoring
-✅ Equipment-Centric Search
-
----
-
-## 🚦 Getting Started
+## Getting Started
 
 ### Backend
+
 ```bash
 cd atlasai_backend
 cp .env.example .env   # fill in GROQ_API_KEY, HF_API_TOKEN, etc.
 docker compose up --build
 ```
 
-Verify it's running:
+Check it's running:
+
 ```bash
 curl http://localhost:8000/ping
 ```
 
 ### Frontend
+
 ```bash
 cd atlasai_app
 flutter pub get
@@ -179,37 +134,28 @@ flutter run
 
 ---
 
-## 💡 Future Vision
+## Where We'd Take This Next
 
-AtlasAI aims to become an intelligent maintenance copilot by integrating:
-
-- 📡 IoT Sensors
-- 📈 Predictive Maintenance
-- 🎤 Voice Commands
-- 🌐 ERP/SAP Integration
-- 🔔 Smart Notifications
-- 🌍 Multi-language Support
-- 📱 Mobile-first Maintenance
+- IoT sensor integration for real-time equipment data
+- Predictive maintenance based on historical patterns
+- Voice commands for hands-free field use
+- ERP/SAP integration
+- Smart notifications for anomalies and overdue maintenance
+- Multi-language support for regional teams
+- A more mobile-first field experience
 
 ---
 
-## 👥 Meet the Team
+## Team
 
-### 🚀 Team GenAI
+**Team GenAI**
 
 | Role | Name | GitHub |
 |------|------|--------|
-| 👑 Team Leader | **Sanika Deshmukh** | [@sanikad20](https://github.com/sanikad20) |
-| 💻 Team Member | **Pragati Kharat** | [@pragatikharat17](https://github.com/pragatikharat17) |
-| 🤖 Team Member | **Divya Addagatla** | [@adivya15](https://github.com/adivya15) |
+| Team Lead | Sanika Deshmukh | [@sanikad20](https://github.com/sanikad20) |
+| Team Member | Pragati Kharat | [@pragatikharat17](https://github.com/pragatikharat17) |
+| Team Member | Divya Addagatla | [@adivya15](https://github.com/adivya15) |
 
 ---
 
-## 🌟 Our Mission
-
-> **Empowering industrial teams with trustworthy, explainable, and intelligent AI — turning maintenance knowledge into actionable insights, one query at a time.**
-
----
-
-⭐ **If you found AtlasAI interesting, don't forget to star the repository!**
-MDEOF
+If you found AtlasAI interesting, consider starring the repository.
