@@ -122,56 +122,92 @@ class _KnowledgeCaptureScreenState extends State<KnowledgeCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // FIX: explicitly true (Flutter's default already, but stated
+      // here per the requirement) so the body actually shrinks when
+      // the keyboard opens instead of the content being pushed off
+      // and clipped/overflowing behind the keyboard.
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('Knowledge Capture')),
-      body: switch (_stage) {
-        _CaptureStage.setup => _buildSetup(),
-        _CaptureStage.loading => const Center(child: CircularProgressIndicator()),
-        _CaptureStage.interview => _buildInterview(),
-        _CaptureStage.submitting => const Center(child: CircularProgressIndicator()),
-        _CaptureStage.done => _buildDone(),
-        _CaptureStage.error => _buildError(),
-      },
+      // FIX: wrapped the whole body in SafeArea. This screen wasn't
+      // wrapped before, so on devices with notches/gesture bars the
+      // usable content area was slightly smaller than the layout
+      // assumed, contributing to the 1px-scale overflow seen on the
+      // setup screen once the keyboard appeared.
+      body: SafeArea(
+        child: switch (_stage) {
+          _CaptureStage.setup => _buildSetup(),
+          _CaptureStage.loading => const Center(child: CircularProgressIndicator()),
+          _CaptureStage.interview => _buildInterview(),
+          _CaptureStage.submitting => const Center(child: CircularProgressIndicator()),
+          _CaptureStage.done => _buildDone(),
+          _CaptureStage.error => _buildError(),
+        },
+      ),
     );
   }
 
   Widget _buildSetup() {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.record_voice_over_outlined, size: 48, color: AppColors.primary),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'Capture what you know',
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'A short guided interview — answer by voice or text. '
-            'Nothing here is graded; it just becomes searchable knowledge.',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: _equipmentIdController,
-            decoration: const InputDecoration(
-              labelText: 'Equipment ID (optional)',
-              hintText: 'e.g. PUMP-04 — tailors the questions',
-              prefixIcon: Icon(Icons.tag, size: 18),
+    // FIX: this is the exact overflow shown in the screenshot
+    // ("BOTTOM OVERFLOWED BY 1.00 PIXELS" on the Start Interview
+    // button). Cause: the Column used
+    // mainAxisAlignment: MainAxisAlignment.center directly inside a
+    // Padding with no scroll container, so it assumed a fixed
+    // available height. When the keyboard opened (from focusing the
+    // Equipment ID field) and shrank that available height by even a
+    // hair, the Column's content no longer fit and overflowed by a
+    // sliver.
+    //
+    // Fix: same LayoutBuilder + SingleChildScrollView +
+    // ConstrainedBox(minHeight) pattern already used elsewhere in
+    // this app (see ChatScreen's _EmptyState) — when there's enough
+    // room it still centers exactly as before; when the keyboard
+    // shrinks the space, it scrolls instead of overflowing. No
+    // widgets removed or redesigned, no spacing changed.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.record_voice_over_outlined, size: 48, color: AppColors.primary),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Capture what you know',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'A short guided interview — answer by voice or text. '
+                  'Nothing here is graded; it just becomes searchable knowledge.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                TextField(
+                  controller: _equipmentIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Equipment ID (optional)',
+                    hintText: 'e.g. PUMP-04 — tailors the questions',
+                    prefixIcon: Icon(Icons.tag, size: 18),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton.icon(
+                  onPressed: _startInterview,
+                  icon: const Icon(Icons.play_arrow, size: 18),
+                  label: const Text('Start interview'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton.icon(
-            onPressed: _startInterview,
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Start interview'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -251,10 +287,15 @@ class _KnowledgeCaptureScreenState extends State<KnowledgeCaptureScreen> {
   }
 
   Widget _buildDone() {
-    return Padding(
+    // FIX: wrapped in SingleChildScrollView for the same reason as
+    // _buildSetup — a centered Column with no scroll fallback can
+    // overflow on short screens or in landscape. Design/spacing
+    // unchanged.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.check_circle, color: AppColors.success, size: 48),
           const SizedBox(height: AppSpacing.md),
@@ -281,10 +322,12 @@ class _KnowledgeCaptureScreenState extends State<KnowledgeCaptureScreen> {
   }
 
   Widget _buildError() {
-    return Padding(
+    // FIX: same SingleChildScrollView safety net as above.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.error_outline, color: AppColors.danger, size: 40),
           const SizedBox(height: AppSpacing.md),

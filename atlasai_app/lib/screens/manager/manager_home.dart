@@ -5,6 +5,7 @@ import '../../services/dashboard_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/role_switcher.dart';
 import '../../services/auth_service.dart';
 import '../actions/action_result_screen.dart';
 import '../equipment/equipment_timeline_screen.dart';
@@ -44,17 +45,39 @@ class _ManagerHomeState extends State<ManagerHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // FIX: explicit true for consistency with the other role
+      // screens — keeps behavior predictable and matches the stated
+      // requirement for screens involved in this fix pass.
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Plant Intelligence Dashboard'),
+        // FIX: same overflow pattern as EngineerHome/ChatScreen —
+        // RoleBadge + RoleSwitcher + logout IconButton together
+        // exceed the AppBar's available width on narrower phones,
+        // and a plain `actions` Row has no shrink/scroll behavior of
+        // its own. Wrapping the group in a single horizontally
+        // scrollable action item fixes this without resizing or
+        // redesigning RoleBadge, RoleSwitcher, or the logout button.
         actions: [
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: RoleBadge(role: UserRole.manager),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => AuthService().signOut(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: RoleBadge(role: UserRole.manager),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: RoleSwitcher(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Sign out',
+                  onPressed: () => AuthService().signOut(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -98,19 +121,6 @@ class _ManagerHomeState extends State<ManagerHome> {
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [
-                // LAYOUT CHANGE: GridView.count with a fixed
-                // childAspectRatio: 1.5 forces every cell to a fixed
-                // height derived purely from cell width — it cannot
-                // grow if a StatCard's subtitle wraps to 2-3 lines on
-                // a narrow 320-480dp phone, which is exactly what
-                // caused "BOTTOM OVERFLOWED BY xx PIXELS". Replaced
-                // with _ResponsiveStatGrid (defined below), which lays
-                // the same 4 StatCards out in two-column rows using
-                // IntrinsicHeight + Expanded instead of a fixed aspect
-                // ratio, so each row's height is determined by its
-                // tallest card's actual content and can grow as
-                // needed. Same cards, same props, same spacing/visual
-                // design — only the sizing strategy changed.
                 _ResponsiveStatGrid(
                   spacing: AppSpacing.sm,
                   cards: [
@@ -158,10 +168,6 @@ class _ManagerHomeState extends State<ManagerHome> {
                             '${asset.incidentCount} incident(s) recorded'
                             '${asset.lastIncidentDate != null ? ' · last ${_formatDate(asset.lastIncidentDate!)}' : ''}',
                           ),
-                          // NEW: tapping the tile itself opens the
-                          // equipment's timeline + health score.
-                          // "Generate RCA" stays as the trailing
-                          // action, unchanged.
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -195,14 +201,6 @@ class _ManagerHomeState extends State<ManagerHome> {
                   )
                 else
                   ...stats.recentAlerts.map((alert) {
-                    // CHANGE: previously this always rendered a
-                    // generic templated subtitle ("Matched N similar
-                    // incident(s) — filename") regardless of what was
-                    // actually found. Now it surfaces the single best
-                    // matched incident's real snippet and similarity
-                    // score — the actual AI insight — and falls back
-                    // to the old generic line only if, for some
-                    // reason, no match detail is available.
                     final best = alert.bestMatch;
                     final subtitle = best != null
                         ? '"${best.snippet.trim()}"\n'
@@ -255,11 +253,11 @@ class _ManagerHomeState extends State<ManagerHome> {
 /// a fixed aspect ratio (unlike GridView.count), so each row's height
 /// is determined by its tallest card's actual content. Wraps each row
 /// in IntrinsicHeight so both cards in that row stretch to match
-/// whichever one is taller (e.g. if one has a longer wrapping
-/// subtitle), keeping the "same design" look of equal-height card
-/// pairs while still letting the row as a whole grow vertically when
-/// content needs more room. Purely presentational — does not touch
-/// StatCard's own props or any business/data logic.
+/// whichever one is taller, keeping the "same design" look of
+/// equal-height card pairs while still letting the row as a whole
+/// grow vertically when content needs more room. Purely
+/// presentational — does not touch StatCard's own props or any
+/// business/data logic.
 class _ResponsiveStatGrid extends StatelessWidget {
   final List<Widget> cards;
   final double spacing;
@@ -286,10 +284,6 @@ class _ResponsiveStatGrid extends StatelessWidget {
                   SizedBox(width: spacing),
                   Expanded(child: cards[i + 1]),
                 ] else
-                  // Odd number of cards: keep the second column's
-                  // space empty rather than stretching the last card
-                  // to full width, preserving the existing two-column
-                  // visual design.
                   Expanded(child: Container()),
               ],
             ),

@@ -5,6 +5,7 @@ import '../../services/orchestrator_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/explainable_ai_panel.dart';
+import '../../widgets/role_switcher.dart';
 import '../actions/action_result_screen.dart';
 import '../equipment/equipment_timeline_screen.dart';
 
@@ -90,17 +91,48 @@ class _EngineerHomeState extends State<EngineerHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // FIX: explicit true so this screen's TextFields resize
+      // correctly when the keyboard opens instead of the fixed
+      // bottom content being pushed/clipped.
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Maintenance Engineer'),
+        // FIX (corrected): the previous SingleChildScrollView wrap
+        // didn't actually fix anything, because AppBar measures
+        // `actions` at their natural/unconstrained width before
+        // laying out the title — it never hands actions a bounded
+        // width to begin with. A SingleChildScrollView only scrolls
+        // when its parent constrains it smaller than its content;
+        // with no such bound, it just reported its natural width
+        // (RoleBadge + RoleSwitcher + logout), which was still wide
+        // enough to push the whole AppBar row past the screen edge —
+        // exactly the overflow seen in the screenshot. The real fix:
+        // wrap it in a ConstrainedBox with an explicit maxWidth, so
+        // there's now a genuine bound for the scroll view to scroll
+        // within instead of overflowing past it.
         actions: [
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: RoleBadge(role: UserRole.engineer),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => AuthService().signOut(),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.62),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: RoleBadge(role: UserRole.engineer),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: RoleSwitcher(),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    tooltip: 'Sign out',
+                    onPressed: () => AuthService().signOut(),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -187,16 +219,13 @@ class _EngineerHomeState extends State<EngineerHome> {
             const SizedBox(height: AppSpacing.lg),
             Text('Generate Documents', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
-            // NEW: exposes the Action Engine's maintenance_checklist,
-            // inspection_schedule, and (new) preventive_maintenance
-            // generation for this equipment — previously these
-            // existed on the backend but weren't reachable from the
-            // Engineer screen at all (only maintenance_checklist was
-            // reachable, and only via a Manager dashboard alert).
-            // Wrap uses the same "grow, don't overflow" approach as
-            // the button rows elsewhere in the app, so these three
-            // buttons wrap onto additional lines on narrow phones
-            // instead of overflowing.
+            // Exposes the Action Engine's maintenance_checklist,
+            // inspection_schedule, and preventive_maintenance
+            // generation for this equipment. Wrap uses the same
+            // "grow, don't overflow" approach as the button rows
+            // elsewhere in the app, so these three buttons wrap onto
+            // additional lines on narrow phones instead of
+            // overflowing.
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -249,9 +278,6 @@ class _EngineerHomeState extends State<EngineerHome> {
                   icon: const Icon(Icons.build_circle_outlined, size: 18),
                   label: const Text('Preventive Maintenance'),
                 ),
-                // NEW: opens the equipment-specific timeline + health
-                // score, distinct from the plant-wide incident
-                // timeline (LessonsLearnedTimelineScreen).
                 OutlinedButton.icon(
                   onPressed: _equipmentController.text.trim().isEmpty
                       ? null

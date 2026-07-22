@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_role.dart';
 import '../services/orchestrator_service.dart';
+import '../services/role_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_pill.dart';
 import 'home_shell.dart';
@@ -30,11 +31,22 @@ class DevHomeScreen extends StatelessWidget {
               title: 'Knowledge Agent Chat',
               subtitle: 'Skip auth — go straight to the technician chat',
               onTap: () {
+                // CHANGE: this dev shortcut skips AuthGate entirely, so
+                // there's no RoleScope ancestor set up for it the way
+                // there is for the real login flow. ChatScreen's AppBar
+                // now includes RoleSwitcher, which calls
+                // RoleScope.of(context) — without wrapping this route
+                // in its own RoleScope, that call has no ancestor to
+                // find and throws. This wraps a standalone
+                // RoleController seeded to technician around the
+                // screen, same as the three dashboard tiles below.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        const ChatScreen(userRole: 'technician'),
+                    builder: (_) => RoleScope(
+                      controller: RoleController(UserRole.technician),
+                      child: const ChatScreen(userRole: 'technician'),
+                    ),
                   ),
                 );
               },
@@ -89,11 +101,20 @@ class DevHomeScreen extends StatelessWidget {
               title: 'Engineer Dashboard',
               subtitle: 'Preview Engineer role',
               onTap: () {
+                // CHANGE: HomeShell no longer takes a `role` param —
+                // it reads the live role from RoleScope instead (see
+                // home_shell.dart). This dev shortcut bypasses
+                // AuthGate (which is normally what creates the
+                // RoleScope), so it needs to create its own
+                // standalone one, seeded to the role this tile is
+                // meant to preview.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        const HomeShell(role: UserRole.engineer),
+                    builder: (_) => RoleScope(
+                      controller: RoleController(UserRole.engineer),
+                      child: const HomeShell(),
+                    ),
                   ),
                 );
               },
@@ -107,8 +128,10 @@ class DevHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        const HomeShell(role: UserRole.manager),
+                    builder: (_) => RoleScope(
+                      controller: RoleController(UserRole.manager),
+                      child: const HomeShell(),
+                    ),
                   ),
                 );
               },
@@ -122,8 +145,10 @@ class DevHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        const HomeShell(role: UserRole.auditor),
+                    builder: (_) => RoleScope(
+                      controller: RoleController(UserRole.auditor),
+                      child: const HomeShell(),
+                    ),
                   ),
                 );
               },

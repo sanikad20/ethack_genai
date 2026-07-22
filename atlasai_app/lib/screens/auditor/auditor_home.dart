@@ -5,6 +5,7 @@ import '../../services/orchestrator_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/explainable_ai_panel.dart';
+import '../../widgets/role_switcher.dart';
 import '../actions/action_result_screen.dart';
 
 /// Day 6: Compliance Status view — runs the real backend Compliance
@@ -43,14 +44,6 @@ class _AuditorHomeState extends State<AuditorHome> {
     });
 
     try {
-      // CHANGE: pass `agents: ['compliance_agent']` so the backend
-      // only runs the Compliance Agent for this screen, instead of
-      // whatever default agent set /query would otherwise pick.
-      // This is why the Auditor screen was previously getting "no
-      // result for this query" — it was never asking the backend to
-      // run compliance_agent in the first place, even though Swagger
-      // requests that explicitly included "agents": ["compliance_agent"]
-      // worked fine.
       final response = await _orchestrator.query(
         'Is $equipmentId compliant with its maintenance interval?',
         userRole: 'auditor',
@@ -58,18 +51,11 @@ class _AuditorHomeState extends State<AuditorHome> {
         agents: ['compliance_agent'],
       );
 
-      // Debug: confirm exactly what the Auditor screen received back,
-      // in addition to the request/response logging already inside
-      // OrchestratorService.query().
       print('===== AuditorHome: response received =====');
       print(response);
 
       final results = (response['results'] as List?) ?? [];
 
-      // Debug: show what agent name(s) actually came back, so a
-      // mismatch (e.g. "ComplianceAgent" vs "compliance_agent") is
-      // immediately visible instead of silently failing the
-      // firstWhere lookup below.
       print('===== AuditorHome: agents in response =====');
       print(results.map((r) => r['agent']).toList());
 
@@ -99,6 +85,12 @@ class _AuditorHomeState extends State<AuditorHome> {
             padding: EdgeInsets.only(right: 12),
             child: RoleBadge(role: UserRole.auditor),
           ),
+          // NEW: lets the user switch to Technician/Engineer/Manager
+          // without signing out.
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: RoleSwitcher(),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
@@ -122,22 +114,6 @@ class _AuditorHomeState extends State<AuditorHome> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // LAYOUT CHANGE: the two action buttons previously sat in a
-            // plain Row, which has no way to shrink or wrap its
-            // children — on narrow phones (320-480dp) their combined
-            // intrinsic width exceeded the available width, causing
-            // "RIGHT OVERFLOWED BY xx PIXELS". LayoutBuilder now checks
-            // the actual width available to this Row at build time:
-            //  - Wide enough (>= 360dp here, tune as needed): buttons
-            //    stay side-by-side in a Row, each wrapped in Expanded so
-            //    they share the width instead of using their intrinsic
-            //    (overflow-prone) width.
-            //  - Narrow: buttons stack vertically at full width via a
-            //    Column, so each button keeps its full label, icon, and
-            //    tap-target size (no shrinking text/icons, so
-            //    accessibility/tap size is preserved either way).
-            // No onPressed/navigation logic changed — only the
-            // container arrangement around the same two buttons.
             LayoutBuilder(
               builder: (context, constraints) {
                 final checkComplianceButton = FilledButton.icon(
@@ -210,10 +186,6 @@ class _AuditorHomeState extends State<AuditorHome> {
                 ),
               ),
               const SizedBox(height: 12),
-              // No change needed here: ExplainableAiPanel already reads
-              // confidence / sources / reasoning off `_result`, which
-              // now actually gets populated because the request above
-              // asks the backend to run compliance_agent.
               ExplainableAiPanel(
                 confidence: (_result!['confidence'] as num?)?.toDouble() ?? 0.0,
                 sources: List<String>.from(_result!['sources'] ?? const []),

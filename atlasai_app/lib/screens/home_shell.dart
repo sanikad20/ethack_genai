@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import '../models/user_role.dart';
+import '../services/role_controller.dart';
 import 'technician/technician_home.dart';
 import 'engineer/engineer_home.dart';
 import 'manager/manager_home.dart';
 import 'auditor/auditor_home.dart';
 
-/// Day 1 stub: routes to a role-specific home screen.
-/// Real role lookup (from Firestore, after login) replaces the
-/// hardcoded `role` param on Day 4.
+/// Routes to a role-specific home screen.
+///
+/// CHANGE (role switching without logout): `role` is no longer a
+/// constructor prop fetched once at login — it's read live from
+/// RoleScope, so this widget rebuilds automatically (via the
+/// InheritedNotifier dependency established by RoleScope.of) whenever
+/// RoleSwitcher calls RoleController.setRole() anywhere in the tree.
+/// No auth change, no navigation, no logout involved.
 class HomeShell extends StatelessWidget {
-  final UserRole role;
-
-  const HomeShell({super.key, this.role = UserRole.technician});
+  const HomeShell({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final role = RoleScope.of(context).role;
+
     switch (role) {
       case UserRole.technician:
         return const TechnicianHome();

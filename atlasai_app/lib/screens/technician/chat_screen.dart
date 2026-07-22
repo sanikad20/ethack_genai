@@ -7,6 +7,7 @@ import '../../services/orchestrator_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/explainable_ai_panel.dart';
 import '../../widgets/account_menu.dart';
+import '../../widgets/role_switcher.dart';
 import '../upload_document_screen.dart';
 import '../lessons_learned/lessons_learned_timeline_screen.dart';
 import '../knowledge_capture/knowledge_capture_screen.dart';
@@ -130,36 +131,66 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // FIX: explicit true so the body (equipment ID field + chat +
+      // input bar) actually shrinks when the keyboard opens, matching
+      // the other requirement to handle keyboard-driven overflow.
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Knowledge Agent'),
+        // FIX (corrected): the previous SingleChildScrollView wrap
+        // didn't actually fix anything, because AppBar measures
+        // `actions` at their natural/unconstrained width before
+        // laying out the title — it never hands actions a bounded
+        // width to begin with. A SingleChildScrollView only scrolls
+        // when its parent constrains it smaller than its content;
+        // with no such bound, it just reported its natural width
+        // (icons + RoleSwitcher + AccountMenu), which was still wide
+        // enough to push the whole AppBar row past the screen edge.
+        // The real fix: wrap it in a ConstrainedBox with an explicit
+        // maxWidth, so there's now a genuine bound for the scroll
+        // view to scroll within instead of overflowing past it.
         actions: [
-          IconButton(
-            icon: const Icon(Icons.upload_file_outlined),
-            tooltip: 'Upload a document',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UploadDocumentScreen()),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.62),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.upload_file_outlined),
+                    tooltip: 'Upload a document',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const UploadDocumentScreen()),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.timeline_outlined),
+                    tooltip: 'Lessons Learned Timeline',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LessonsLearnedTimelineScreen()),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.record_voice_over_outlined),
+                    tooltip: 'Capture knowledge',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const KnowledgeCaptureScreen()),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: RoleSwitcher(),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12, left: 4),
+                    child: AccountMenu(role: UserRole.technician),
+                  ),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.timeline_outlined),
-            tooltip: 'Lessons Learned Timeline',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LessonsLearnedTimelineScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.record_voice_over_outlined),
-            tooltip: 'Capture knowledge',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const KnowledgeCaptureScreen()),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12, left: 4),
-            child: AccountMenu(role: UserRole.technician),
           ),
         ],
       ),
@@ -258,31 +289,49 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                shape: BoxShape.circle,
+    // FIX: this is the "BOTTOM OVERFLOWED BY 56 PIXELS" seen in the
+    // screenshot. Cause: a centered Column with icon + heading +
+    // subtitle had no scroll fallback, so when the keyboard opened
+    // (from focusing the Equipment ID field above) and shrank the
+    // Expanded area this sits in, the content no longer fit.
+    //
+    // Fix: LayoutBuilder + SingleChildScrollView + ConstrainedBox
+    // (minHeight) — when there's enough room it still centers exactly
+    // as before; when space is tight, it scrolls instead of
+    // overflowing. Same icon, same text, same spacing.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.hub_outlined, size: 40, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Ask the Knowledge Agent', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Type a question or tap the mic. Answers are\ngrounded in your plant\'s ingested documents.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.hub_outlined, size: 40, color: AppColors.primary),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Text('Ask the Knowledge Agent', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              'Type a question or tap the mic. Answers are\ngrounded in your plant\'s ingested documents.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
