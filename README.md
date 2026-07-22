@@ -1,3 +1,5 @@
+cd ~/ethack_genai
+cat > README.md << 'MDEOF'
 # 🤖 AtlasAI
 
 ### **Transforming Industrial Maintenance with Generative AI**
@@ -7,6 +9,14 @@
 AtlasAI is an **AI-powered industrial maintenance assistant** that helps engineers, technicians, plant managers, and auditors instantly retrieve equipment knowledge, diagnose issues, and generate maintenance documents using **Retrieval-Augmented Generation (RAG)**, **Knowledge Graphs**, and **Large Language Models**.
 
 Instead of spending hours searching through SOPs, maintenance logs, and equipment manuals, users can simply ask AtlasAI and receive **accurate, explainable, and source-backed answers in seconds.**
+
+---
+
+## 🔗 Live Demo
+
+**Backend API:** [https://ethack-genai.onrender.com/](https://ethack-genai.onrender.com/)
+
+> ⏳ Hosted on Render's free tier — the first request after a period of inactivity can take **30–60 seconds** to wake the service up. Subsequent requests are fast. Try `GET /ping` first to warm it up before a live demo.
 
 ---
 
@@ -70,7 +80,7 @@ AtlasAI adapts responses based on the user's role.
 
 ---
 
-# ⚡ How AtlasAI Works
+## ⚡ How AtlasAI Works
 
 ```text
              📄 Maintenance Documents
@@ -97,9 +107,15 @@ AtlasAI adapts responses based on the user's role.
               👤 Role-Based Responses
 ```
 
+### Architecture Diagram
+
+![AtlasAI Architecture](docs/architecture-diagram.jpg)
+
+The system is split into a **Flutter client**, a **FastAPI backend** with five core services (Auth, Document, Knowledge Agent, Action Engine, Graph), an **AI/ML pipeline** (ingestion → chunking → embeddings → ChromaDB → RAG retrieval → Groq generation → response formatting), and external services (Groq API, embeddings model, Firebase).
+
 ---
 
-# 🛠 Tech Stack
+## 🛠 Tech Stack
 
 ### 🎨 Frontend
 - Flutter
@@ -125,31 +141,45 @@ AtlasAI adapts responses based on the user's role.
 
 ---
 
-# 🎯 Key Features
+## 🎯 Key Features
 
 ✅ AI Knowledge Assistant
-
 ✅ AI Action Engine
-
 ✅ Retrieval-Augmented Generation (RAG)
-
 ✅ Semantic Search
-
 ✅ Knowledge Graph
-
 ✅ Explainable AI
-
 ✅ Role-Based AI
-
 ✅ Source Citations
-
 ✅ Confidence Scoring
-
 ✅ Equipment-Centric Search
 
 ---
 
-# 💡 Future Vision
+## 🚦 Getting Started
+
+### Backend
+```bash
+cd atlasai_backend
+cp .env.example .env   # fill in GROQ_API_KEY, HF_API_TOKEN, etc.
+docker compose up --build
+```
+
+Verify it's running:
+```bash
+curl http://localhost:8000/ping
+```
+
+### Frontend
+```bash
+cd atlasai_app
+flutter pub get
+flutter run
+```
+
+---
+
+## 💡 Future Vision
 
 AtlasAI aims to become an intelligent maintenance copilot by integrating:
 
@@ -163,9 +193,9 @@ AtlasAI aims to become an intelligent maintenance copilot by integrating:
 
 ---
 
-# 👥 Meet the Team
+## 👥 Meet the Team
 
-## 🚀 Team GenAI
+### 🚀 Team GenAI
 
 | Role | Name | GitHub |
 |------|------|--------|
@@ -177,8 +207,9 @@ AtlasAI aims to become an intelligent maintenance copilot by integrating:
 
 ## 🌟 Our Mission
 
-> **Empowering industrial teams with trustworthy, explainable, and intelligent AI—turning maintenance knowledge into actionable insights, one query at a time.**
+> **Empowering industrial teams with trustworthy, explainable, and intelligent AI — turning maintenance knowledge into actionable insights, one query at a time.**
 
 ---
 
 ⭐ **If you found AtlasAI interesting, don't forget to star the repository!**
+MDEOF
