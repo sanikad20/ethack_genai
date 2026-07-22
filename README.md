@@ -92,19 +92,33 @@ The system has three main pieces: a Flutter client, a FastAPI backend running fi
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-**Frontend**
-Flutter, Dart, Firebase Authentication, Cloud Firestore, Firebase Storage
+### 🎨 Frontend
 
-**Backend**
-FastAPI, Python
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg" width="22"/> Flutter &nbsp;
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg" width="22"/> Dart &nbsp;
+<img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" width="22"/> Firebase Authentication &nbsp;
+<img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" width="22"/> Cloud Firestore &nbsp;
+<img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" width="22"/> Firebase Storage
 
-**AI / ML**
-Groq Llama 3.3 70B, Retrieval-Augmented Generation, ChromaDB, Sentence Transformers, Knowledge Graph
+### ⚙️ Backend
 
-**Database**
-Firebase Firestore, Chroma Vector Database
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg" width="22"/> FastAPI &nbsp;
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="22"/> Python
+
+### 🤖 AI / ML
+
+🦙 Groq (Llama 3.3 70B) &nbsp;
+🔍 Retrieval-Augmented Generation (RAG) &nbsp;
+💾 ChromaDB &nbsp;
+🤗 Sentence Transformers &nbsp;
+🧠 Knowledge Graph
+
+### 🗄️ Database
+
+<img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" width="22"/> Firestore &nbsp;
+💾 Chroma Vector Database
 
 ---
 
